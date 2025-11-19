@@ -2,15 +2,17 @@
 
 ![reader3](reader3.png)
 
-A lightweight, self-hosted EPUB reader that lets you read through EPUB books one chapter at a time. This makes it very easy to copy paste the contents of a chapter to an LLM, to read along. Basically - get epub books (e.g. [Project Gutenberg](https://www.gutenberg.org/) has many), open them up in this reader, copy paste text around to your favorite LLM, and read together and along.
+A lightweight, self-hosted document reader that lets you read through EPUB books, PDF documents, and Markdown files one section at a time. This makes it very easy to copy paste contents to an LLM, to read along. Get documents from various sources, open them up in this reader, copy paste text around to your favorite LLM, and read together and along.
 
 ## Features
 
-- **User-Friendly Streamlit UI**: Upload and process EPUB files directly through a modern web interface
-- **API Key Management**: Optional OpenAI API key input for future AI-powered features
-- **Chapter-by-Chapter Reading**: Clean, distraction-free reading experience optimized for LLM integration
-- **Library Management**: Automatically manages your book collection
-- **FastAPI Alternative**: Classic web server option still available
+- **Multiple Format Support**: Upload and read EPUB, PDF, and Markdown (.md) files
+- **User-Friendly Streamlit UI**: Upload and process documents directly through a modern web interface
+- **AI Model Integration**: Support for both OpenAI (GPT-5, GPT-4) and Google Gemini (Gemini 3, 2.5, 2.0) models
+- **API Key Management**: Separate API key inputs for OpenAI and Gemini with secure storage
+- **Section-by-Section Reading**: Clean, distraction-free reading experience optimized for LLM integration
+- **Library Management**: Automatically manages your document collection
+- **FastAPI Alternative**: Classic web server option still available for EPUB files
 
 ## Usage
 
@@ -25,10 +27,12 @@ uv run streamlit run app.py
 ```
 
 This will open a user-friendly web interface where you can:
-1. Upload EPUB files directly through your browser
-2. (Optional) Add your OpenAI API key for future AI features
-3. Browse your library and read books
-4. Navigate chapters with Previous/Next buttons
+1. **Choose AI Provider**: Select between OpenAI or Google Gemini
+2. **Configure API Key**: Enter your API key for the selected provider
+3. **Select Model**: Choose from latest models (GPT-5, Gemini 3, etc.)
+4. **Upload Documents**: Support for EPUB, PDF, and Markdown files
+5. **Browse Library**: View all processed documents
+6. **Read**: Navigate sections with Previous/Next buttons
 
 The app will automatically open in your default browser at `http://localhost:8501`
 
@@ -48,12 +52,31 @@ uv run server.py
 
 And visit [localhost:8123](http://localhost:8123/) to see your Library.
 
-## Finding EPUB Books
+## Supported Document Formats
 
-You can find free, legal EPUB books at:
+### EPUB Books
+Find free, legal EPUB books at:
 - [Project Gutenberg](https://www.gutenberg.org/) - Classic literature
 - [Standard Ebooks](https://standardebooks.org/) - High-quality public domain books
 - [Open Library](https://openlibrary.org/) - Internet Archive's digital library
+
+### PDF Documents
+- Research papers and academic articles
+- Technical documentation
+- eBooks in PDF format
+- Any PDF document you want to read
+
+### Markdown Files
+- Technical documentation
+- README files
+- Notes and guides
+- Blog posts
+- Any .md or .markdown files
+
+**Processing Details:**
+- **EPUB**: Preserves structure, TOC, and images
+- **PDF**: Groups every 10 pages into sections for easy navigation
+- **Markdown**: Automatically splits by headers (H1/H2) into chapters with syntax highlighting
 
 ## Library Management
 

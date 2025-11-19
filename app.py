@@ -7,13 +7,18 @@ import os
 import streamlit as st
 from pathlib import Path
 import tempfile
-from reader3 import process_epub, save_to_pickle, Book
+from reader3 import process_epub, save_to_pickle, Book, BookMetadata, ChapterContent
 import pickle
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
+import PyPDF2
+import markdown
+from markdown.extensions import codehilite, fenced_code, tables
+import re
 
 # Page config
 st.set_page_config(
-    page_title="Reader3 - EPUB Reader",
+    page_title="Reader3 - Document Reader",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -99,20 +104,206 @@ def get_all_books():
                     })
     return books
 
-def process_uploaded_epub(uploaded_file):
-    """Process an uploaded EPUB file"""
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.epub') as tmp_file:
+def process_pdf(pdf_path: str, output_dir: str, title: str) -> Book:
+    """Process a PDF file into Book format"""
+    # Create output directory
+    if os.path.exists(output_dir):
+        import shutil
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Read PDF
+    with open(pdf_path, 'rb') as file:
+        pdf_reader = PyPDF2.PdfReader(file)
+        num_pages = len(pdf_reader.pages)
+
+        # Extract metadata
+        metadata = BookMetadata(
+            title=title,
+            language="en",
+            authors=[pdf_reader.metadata.author] if pdf_reader.metadata and pdf_reader.metadata.author else ["Unknown"],
+            description=f"PDF document with {num_pages} pages",
+            publisher=None,
+            date=datetime.now().isoformat(),
+            identifiers=[],
+            subjects=[]
+        )
+
+        # Process pages into chapters (group every 10 pages)
+        spine = []
+        pages_per_chapter = 10
+
+        for i in range(0, num_pages, pages_per_chapter):
+            chapter_pages = []
+            end_page = min(i + pages_per_chapter, num_pages)
+
+            for page_num in range(i, end_page):
+                page = pdf_reader.pages[page_num]
+                text = page.extract_text()
+                chapter_pages.append(text)
+
+            chapter_text = "\n\n".join(chapter_pages)
+            chapter_html = f"<div style='white-space: pre-wrap;'>{chapter_text}</div>"
+
+            chapter = ChapterContent(
+                id=f"chapter_{i//pages_per_chapter}",
+                href=f"chapter_{i//pages_per_chapter}.html",
+                title=f"Pages {i+1}-{end_page}",
+                content=chapter_html,
+                text=chapter_text,
+                order=i//pages_per_chapter
+            )
+            spine.append(chapter)
+
+    # Create book object
+    book = Book(
+        metadata=metadata,
+        spine=spine,
+        toc=[],
+        images={},
+        source_file=os.path.basename(pdf_path),
+        processed_at=datetime.now().isoformat()
+    )
+
+    return book
+
+def process_markdown(md_path: str, output_dir: str, title: str) -> Book:
+    """Process a Markdown file into Book format"""
+    # Create output directory
+    if os.path.exists(output_dir):
+        import shutil
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Read Markdown file
+    with open(md_path, 'r', encoding='utf-8') as file:
+        md_content = file.read()
+
+    # Extract title from first h1 if exists
+    first_h1 = re.search(r'^#\s+(.+)$', md_content, re.MULTILINE)
+    if first_h1:
+        title = first_h1.group(1)
+
+    # Split by headers (h1 and h2)
+    sections = re.split(r'^(#{1,2}\s+.+)$', md_content, flags=re.MULTILINE)
+
+    # Create metadata
+    metadata = BookMetadata(
+        title=title,
+        language="en",
+        authors=["Unknown"],
+        description="Markdown document",
+        publisher=None,
+        date=datetime.now().isoformat(),
+        identifiers=[],
+        subjects=[]
+    )
+
+    # Process sections into chapters
+    spine = []
+    current_title = "Introduction"
+    current_content = []
+    chapter_idx = 0
+
+    for i, section in enumerate(sections):
+        if i == 0 and section.strip():
+            # Content before first header
+            current_content.append(section)
+        elif section.startswith('#'):
+            # Save previous chapter if exists
+            if current_content:
+                md_text = ''.join(current_content)
+                html_content = markdown.markdown(
+                    md_text,
+                    extensions=['fenced_code', 'tables', 'codehilite']
+                )
+
+                chapter = ChapterContent(
+                    id=f"chapter_{chapter_idx}",
+                    href=f"chapter_{chapter_idx}.html",
+                    title=current_title,
+                    content=html_content,
+                    text=md_text,
+                    order=chapter_idx
+                )
+                spine.append(chapter)
+                chapter_idx += 1
+
+            # Start new chapter
+            current_title = section.strip('#').strip()
+            current_content = []
+        else:
+            current_content.append(section)
+
+    # Add last chapter
+    if current_content:
+        md_text = ''.join(current_content)
+        html_content = markdown.markdown(
+            md_text,
+            extensions=['fenced_code', 'tables', 'codehilite']
+        )
+
+        chapter = ChapterContent(
+            id=f"chapter_{chapter_idx}",
+            href=f"chapter_{chapter_idx}.html",
+            title=current_title,
+            content=html_content,
+            text=md_text,
+            order=chapter_idx
+        )
+        spine.append(chapter)
+
+    # If no chapters were created, make one from entire content
+    if not spine:
+        html_content = markdown.markdown(
+            md_content,
+            extensions=['fenced_code', 'tables', 'codehilite']
+        )
+        chapter = ChapterContent(
+            id="chapter_0",
+            href="chapter_0.html",
+            title=title,
+            content=html_content,
+            text=md_content,
+            order=0
+        )
+        spine.append(chapter)
+
+    # Create book object
+    book = Book(
+        metadata=metadata,
+        spine=spine,
+        toc=[],
+        images={},
+        source_file=os.path.basename(md_path),
+        processed_at=datetime.now().isoformat()
+    )
+
+    return book
+
+def process_uploaded_file(uploaded_file):
+    """Process an uploaded file (EPUB, PDF, or Markdown)"""
+    file_extension = Path(uploaded_file.name).suffix.lower()
+    base_name = Path(uploaded_file.name).stem
+    output_dir = str(BOOKS_DIR / f"{base_name}_data")
+
+    # Save uploaded file temporarily
+    suffix = file_extension
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
         tmp_file.write(uploaded_file.read())
         tmp_path = tmp_file.name
 
     try:
-        # Generate output directory name
-        base_name = Path(uploaded_file.name).stem
-        output_dir = str(BOOKS_DIR / f"{base_name}_data")
-
-        # Process the EPUB
         with st.spinner(f"Processing {uploaded_file.name}..."):
-            book = process_epub(tmp_path, output_dir)
+            if file_extension == '.epub':
+                book = process_epub(tmp_path, output_dir)
+            elif file_extension == '.pdf':
+                book = process_pdf(tmp_path, output_dir, base_name)
+            elif file_extension in ['.md', '.markdown']:
+                book = process_markdown(tmp_path, output_dir, base_name)
+            else:
+                raise ValueError(f"Unsupported file format: {file_extension}")
+
             save_to_pickle(book, output_dir)
 
         return book, output_dir
@@ -322,21 +513,30 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Upload EPUB
-    st.markdown("#### Upload EPUB")
-    uploaded_file = st.file_uploader("Choose an EPUB file", type=['epub'])
+    # Upload File
+    st.markdown("#### 📤 Upload Document")
+    uploaded_file = st.file_uploader(
+        "Choose a file",
+        type=['epub', 'pdf', 'md', 'markdown'],
+        help="Upload EPUB, PDF, or Markdown files"
+    )
 
     if uploaded_file:
-        if st.button("Process Book"):
+        file_type = Path(uploaded_file.name).suffix.upper()
+        st.info(f"📄 Selected: {uploaded_file.name} ({file_type})")
+
+        if st.button("Process Document"):
             try:
-                book, output_dir = process_uploaded_epub(uploaded_file)
+                book, output_dir = process_uploaded_file(uploaded_file)
                 st.success(f"✓ Successfully processed: {book.metadata.title}")
-                st.info(f"Book saved to: {output_dir}")
+                st.info(f"Saved to: {output_dir}")
                 # Refresh the view
                 st.session_state.view = "library"
                 st.rerun()
             except Exception as e:
-                st.error(f"Error processing EPUB: {e}")
+                st.error(f"Error processing file: {e}")
+                import traceback
+                st.error(traceback.format_exc())
 
     st.markdown("---")
 
@@ -349,9 +549,14 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### About")
     st.markdown("""
-    Reader3 is a lightweight EPUB reader designed for reading books alongside LLMs.
+    Reader3 is a lightweight document reader designed for reading alongside LLMs.
 
-    Upload EPUB files, process them, and read chapter by chapter with easy copy-paste functionality.
+    **Supported Formats:**
+    - 📕 EPUB (eBooks)
+    - 📄 PDF (Documents)
+    - 📝 Markdown (.md)
+
+    Upload documents, process them, and read section by section with easy copy-paste functionality.
     """)
 
 # Main content area
@@ -361,14 +566,17 @@ if st.session_state.view == "library":
     books = get_all_books()
 
     if not books:
-        st.info("No books in your library yet. Upload an EPUB file to get started!")
+        st.info("No documents in your library yet. Upload a file to get started!")
         st.markdown("""
         ### Getting Started
-        1. Upload an EPUB file using the sidebar
-        2. Click 'Process Book' to add it to your library
+        1. Upload an EPUB, PDF, or Markdown file using the sidebar
+        2. Click 'Process Document' to add it to your library
         3. Start reading!
 
-        You can find free EPUB books at [Project Gutenberg](https://www.gutenberg.org/)
+        **Where to find documents:**
+        - 📕 Free EPUB books: [Project Gutenberg](https://www.gutenberg.org/)
+        - 📄 PDF documents: Your own PDFs, research papers, articles
+        - 📝 Markdown files: Documentation, notes, technical guides
         """)
     else:
         # Display books in a grid

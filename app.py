@@ -174,9 +174,36 @@ def display_chapter(book: Book, chapter_index: int):
                 st.session_state.current_chapter = chapter_index + 1
                 st.rerun()
 
+# Model configurations
+OPENAI_MODELS = {
+    "GPT-4.1": "gpt-4.1",
+    "GPT-4.1 Mini": "gpt-4.1-mini",
+    "GPT-4.1 Nano": "gpt-4.1-nano",
+    "GPT-4o": "gpt-4o",
+    "GPT-4o Mini": "gpt-4o-mini",
+    "o3 (Reasoning)": "o3",
+    "o4-mini (Reasoning)": "o4-mini",
+    "o4-mini-high (Reasoning)": "o4-mini-high",
+}
+
+GEMINI_MODELS = {
+    "Gemini 3 Pro (Preview)": "gemini-3-pro",
+    "Gemini 2.5 Pro": "gemini-2.5-pro",
+    "Gemini 2.5 Flash": "gemini-2.5-flash",
+    "Gemini 2.5 Flash-Lite": "gemini-2.5-flash-lite",
+    "Gemini 2.0 Flash": "gemini-2.0-flash",
+    "Gemini 2.0 Flash-Lite": "gemini-2.0-flash-lite",
+}
+
 # Initialize session state
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = ""
+if 'openai_api_key' not in st.session_state:
+    st.session_state.openai_api_key = ""
+if 'gemini_api_key' not in st.session_state:
+    st.session_state.gemini_api_key = ""
+if 'ai_provider' not in st.session_state:
+    st.session_state.ai_provider = "OpenAI"
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = ""
 if 'current_book' not in st.session_state:
     st.session_state.current_book = None
 if 'current_chapter' not in st.session_state:
@@ -189,17 +216,96 @@ with st.sidebar:
     st.markdown("### 📚 Reader3")
     st.markdown("---")
 
-    # API Key input (optional, for future AI features)
-    st.markdown("#### Settings")
-    api_key = st.text_input(
-        "OpenAI API Key (Optional)",
-        type="password",
-        value=st.session_state.api_key,
-        help="Optional: Add your OpenAI API key for AI-powered features (coming soon)"
+    # AI Model Configuration
+    st.markdown("#### 🤖 AI Model Settings")
+
+    # Provider selection
+    provider = st.selectbox(
+        "AI Provider",
+        ["OpenAI", "Google Gemini"],
+        index=0 if st.session_state.ai_provider == "OpenAI" else 1,
+        help="Choose your AI provider for enhanced features"
     )
-    if api_key:
-        st.session_state.api_key = api_key
-        st.success("API key saved for this session")
+    st.session_state.ai_provider = provider
+
+    # API Key input based on provider
+    if provider == "OpenAI":
+        openai_key = st.text_input(
+            "OpenAI API Key",
+            type="password",
+            value=st.session_state.openai_api_key,
+            help="Enter your OpenAI API key for AI-powered features"
+        )
+        if openai_key:
+            st.session_state.openai_api_key = openai_key
+            st.success("✓ OpenAI API key configured")
+
+        # Model selection
+        model_display_names = list(OPENAI_MODELS.keys())
+        selected_model_display = st.selectbox(
+            "Select Model",
+            model_display_names,
+            help="Choose the OpenAI model to use"
+        )
+        st.session_state.selected_model = OPENAI_MODELS[selected_model_display]
+
+        # Model info
+        with st.expander("ℹ️ Model Information"):
+            st.markdown("""
+            **GPT-4.1 Family**: Latest models with improved coding and instruction following
+            - GPT-4.1: Full-featured flagship model
+            - GPT-4.1 Mini: Faster, cost-effective version
+            - GPT-4.1 Nano: Ultra-fast, budget-friendly
+
+            **GPT-4o Family**: Multimodal models with native vision
+            - GPT-4o: Versatile omni-model
+            - GPT-4o Mini: Quick and economical
+
+            **O-Series**: Advanced reasoning models
+            - Specialized for complex problem-solving
+            - Strong in science, coding, and math
+            """)
+
+    else:  # Google Gemini
+        gemini_key = st.text_input(
+            "Google Gemini API Key",
+            type="password",
+            value=st.session_state.gemini_api_key,
+            help="Enter your Google Gemini API key"
+        )
+        if gemini_key:
+            st.session_state.gemini_api_key = gemini_key
+            st.success("✓ Gemini API key configured")
+
+        # Model selection
+        model_display_names = list(GEMINI_MODELS.keys())
+        selected_model_display = st.selectbox(
+            "Select Model",
+            model_display_names,
+            help="Choose the Gemini model to use"
+        )
+        st.session_state.selected_model = GEMINI_MODELS[selected_model_display]
+
+        # Model info
+        with st.expander("ℹ️ Model Information"):
+            st.markdown("""
+            **Gemini 3 Pro**: Best-in-class multimodal understanding
+            - 1M+ token context window
+            - Supports text, image, video, audio, PDF
+
+            **Gemini 2.5 Family**: State-of-the-art performance
+            - Pro: Top thinking model
+            - Flash: Best price-performance
+            - Flash-Lite: Ultra-fast and cost-efficient
+
+            **Gemini 2.0 Family**: Second-gen workhorse
+            - Flash: Balanced performance
+            - Flash-Lite: Lightweight variant
+            """)
+
+    # Display current configuration
+    if st.session_state.selected_model:
+        st.info(f"🎯 Current: {provider} - {selected_model_display}")
 
     st.markdown("---")
 

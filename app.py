@@ -176,6 +176,9 @@ def display_chapter(book: Book, chapter_index: int):
 
 # Model configurations
 OPENAI_MODELS = {
+    "GPT-5.1 (Reasoning + Agentic)": "gpt-5.1",
+    "GPT-5 Mini": "gpt-5-mini",
+    "GPT-5 Nano": "gpt-5-nano",
     "GPT-4.1": "gpt-4.1",
     "GPT-4.1 Mini": "gpt-4.1-mini",
     "GPT-4.1 Nano": "gpt-4.1-nano",
@@ -187,7 +190,7 @@ OPENAI_MODELS = {
 }
 
 GEMINI_MODELS = {
-    "Gemini 3 Pro (Preview)": "gemini-3-pro",
+    "Gemini 3 Pro (Preview)": "gemini-3-pro-preview",
     "Gemini 2.5 Pro": "gemini-2.5-pro",
     "Gemini 2.5 Flash": "gemini-2.5-flash",
     "Gemini 2.5 Flash-Lite": "gemini-2.5-flash-lite",
@@ -252,7 +255,12 @@ with st.sidebar:
         # Model info
         with st.expander("ℹ️ Model Information"):
             st.markdown("""
-            **GPT-4.1 Family**: Latest models with improved coding and instruction following
+            **GPT-5 Family** (Latest): Best for coding and agentic tasks
+            - GPT-5.1: Top model with configurable reasoning effort for complex tasks
+            - GPT-5 Mini: Faster, cost-efficient for well-defined tasks
+            - GPT-5 Nano: Fastest, most cost-efficient version
+
+            **GPT-4.1 Family**: Improved coding and instruction following
             - GPT-4.1: Full-featured flagship model
             - GPT-4.1 Mini: Faster, cost-effective version
             - GPT-4.1 Nano: Ultra-fast, budget-friendly
@@ -289,9 +297,12 @@ with st.sidebar:
         # Model info
         with st.expander("ℹ️ Model Information"):
             st.markdown("""
-            **Gemini 3 Pro**: Best-in-class multimodal understanding
-            - 1M+ token context window
-            - Supports text, image, video, audio, PDF
+            **Gemini 3 Pro (Preview)**: Latest flagship model
+            - 1M token input / 64k token output
+            - Advanced reasoning with dynamic thinking
+            - Knowledge cutoff: January 2025
+            - Supports tools: Google Search, Code Execution
+            - Best for complex tasks requiring broad world knowledge
 
             **Gemini 2.5 Family**: State-of-the-art performance
             - Pro: Top thinking model
@@ -301,6 +312,8 @@ with st.sidebar:
             **Gemini 2.0 Family**: Second-gen workhorse
             - Flash: Balanced performance
             - Flash-Lite: Lightweight variant
+
+            All models support text, image, video, audio, and PDF inputs
             """)
 
     # Display current configuration

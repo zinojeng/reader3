@@ -62,6 +62,46 @@ Books are stored as processed data in folders ending with `_data`. You can:
 - Back up books by copying their folders
 - Share books by copying the processed folders to another machine
 
+## Deployment to Zeabur
+
+Reader3 can be easily deployed to [Zeabur](https://zeabur.com) for cloud hosting:
+
+### Quick Deploy
+
+1. **Fork or Clone** this repository to your GitHub account
+
+2. **Connect to Zeabur**:
+   - Go to [Zeabur Dashboard](https://dash.zeabur.com)
+   - Create a new project
+   - Click "Deploy New Service" → "GitHub"
+   - Select this repository
+
+3. **Configure Environment** (Optional):
+   - Add environment variables for API keys if needed
+   - Zeabur will automatically detect the Streamlit app
+
+4. **Deploy**:
+   - Zeabur will automatically build and deploy using the provided configuration
+   - Your app will be live at `your-project.zeabur.app`
+
+### Deployment Files
+
+The following files are configured for Zeabur deployment:
+- `zbpack.json` - Zeabur build and start commands
+- `requirements.txt` - Python dependencies
+- `runtime.txt` - Python version specification
+- `.streamlit/config.toml` - Streamlit server configuration
+
+**Note**: The main file is `app.py` (no need to rename for Zeabur deployment).
+
+### After Deployment
+
+Once deployed, users can:
+- Access the app via the provided Zeabur URL
+- Upload EPUB files (stored temporarily during the session)
+- Configure their own API keys for OpenAI or Gemini
+- Read books with the full feature set
+
 ## License
 
 MIT

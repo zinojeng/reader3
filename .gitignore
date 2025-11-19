@@ -1,14 +1,61 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
 dist/
 wheels/
 *.egg-info
+.eggs/
+lib/
+lib64/
+sdist/
+var/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Virtual environments
 .venv
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# Custom
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# API Keys and secrets
+.env
+.env.local
+*.key
+config.json
+secrets.json
+
+# Streamlit
+.streamlit/secrets.toml
+
+# uv
+.uv/
+uv.lock
+
+# Logs
+*.log
+
+# Custom - EPUB processing artifacts
 *_data/
 *.epub
